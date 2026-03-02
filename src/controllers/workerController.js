@@ -86,6 +86,7 @@ exports.uploadProfileImage = async (req, res, next) => {
 exports.uploadNIC = async (req, res, next) => {
   try {
     const uid = req.user.uid;
+    const side = req.body.side === 'back' ? 'back' : 'front';
 
     if (!req.file) {
       return res.status(400).json({ 
@@ -96,14 +97,23 @@ exports.uploadNIC = async (req, res, next) => {
 
     const fileUrl = await uploadToFirebase(req.file);
 
-    await db.collection("workers").doc(uid).update({
-      nicImage: fileUrl,
+    const updateData = {
       updatedAt: new Date(),
-    });
+    };
+
+    if (side === 'front') {
+      updateData.nicFrontImage = fileUrl;
+      updateData.nicImage = fileUrl;
+    } else {
+      updateData.nicBackImage = fileUrl;
+    }
+
+    await db.collection("workers").doc(uid).update(updateData);
 
     res.json({ 
       success: true,
-      message: 'NIC image uploaded successfully',
+      message: side === 'front' ? 'NIC front image uploaded successfully' : 'NIC back image uploaded successfully',
+      side,
       fileUrl 
     });
   } catch (err) {
