@@ -3,6 +3,19 @@ const { ApiError } = require("./errorHandler");
 
 const verifyToken = async (req, res, next) => {
   try {
+    const allowDevBypass =
+      process.env.ALLOW_DEV_AUTH_BYPASS === "true" &&
+      (process.env.NODE_ENV || "development") !== "production";
+
+    if (allowDevBypass) {
+      const testUid = req.headers["x-test-uid"] || "postman-test-user";
+      req.user = {
+        uid: String(testUid),
+        phone_number: req.headers["x-test-phone"] || null,
+      };
+      return next();
+    }
+
     const authHeader = req.headers.authorization;
     
     if (!authHeader) {
