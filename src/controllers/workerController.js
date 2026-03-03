@@ -5,6 +5,7 @@ const { ApiError } = require("../middleware/errorHandler");
 exports.createProfile = async (req, res, next) => {
   try {
     const uid = req.user.uid;
+    const nicNumber = typeof req.body.nicNumber === 'string' ? req.body.nicNumber.trim() : '';
     
     if (!req.body.name || !req.body.category) {
       return res.status(400).json({ 
@@ -18,6 +19,7 @@ exports.createProfile = async (req, res, next) => {
       name: req.body.name,
       phone: req.user.phone_number,
       category: req.body.category,
+      nicNumber: nicNumber || null,
       createdAt: new Date(),
     };
 
@@ -27,6 +29,43 @@ exports.createProfile = async (req, res, next) => {
       success: true,
       message: "Profile created successfully",
       data 
+    });
+  } catch (err) {
+    next(new ApiError(err.message, 500));
+  }
+};
+
+exports.updateNICNumber = async (req, res, next) => {
+  try {
+    const uid = req.user.uid;
+    const nicNumber = typeof req.body.nicNumber === 'string' ? req.body.nicNumber.trim() : '';
+
+    if (!nicNumber) {
+      return res.status(400).json({
+        success: false,
+        error: 'NIC number is required',
+      });
+    }
+
+    const workerRef = db.collection('workers').doc(uid);
+    const workerDoc = await workerRef.get();
+
+    if (!workerDoc.exists) {
+      return res.status(404).json({
+        success: false,
+        error: 'Profile not found',
+      });
+    }
+
+    await workerRef.update({
+      nicNumber,
+      updatedAt: new Date(),
+    });
+
+    res.json({
+      success: true,
+      message: 'NIC number updated successfully',
+      nicNumber,
     });
   } catch (err) {
     next(new ApiError(err.message, 500));
@@ -87,6 +126,7 @@ exports.uploadNIC = async (req, res, next) => {
   try {
     const uid = req.user.uid;
     const side = req.body.side === 'back' ? 'back' : 'front';
+    const nicNumber = typeof req.body.nicNumber === 'string' ? req.body.nicNumber.trim() : '';
 
     if (!req.file) {
       return res.status(400).json({ 
@@ -106,6 +146,10 @@ exports.uploadNIC = async (req, res, next) => {
       updateData.nicImage = fileUrl;
     } else {
       updateData.nicBackImage = fileUrl;
+    }
+
+    if (nicNumber) {
+      updateData.nicNumber = nicNumber;
     }
 
     await db.collection("workers").doc(uid).update(updateData);
