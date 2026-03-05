@@ -164,3 +164,34 @@ exports.uploadNIC = async (req, res, next) => {
     next(new ApiError(err.message, 500));
   }
 };
+
+exports.uploadDocument = async (req, res, next) => {
+  try {
+    const uid = req.user.uid;
+
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        error: 'No file provided'
+      });
+    }
+
+    const fileUrl = await uploadToFirebase(req.file);
+
+    await db.collection('workers').doc(uid).set(
+      {
+        certifications: fileUrl,
+        updatedAt: new Date(),
+      },
+      { merge: true }
+    );
+
+    res.json({
+      success: true,
+      message: 'Document uploaded successfully',
+      fileUrl,
+    });
+  } catch (err) {
+    next(new ApiError(err.message, 500));
+  }
+};
