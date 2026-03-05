@@ -26,7 +26,18 @@ app.use(express.urlencoded({ extended: true }));
 connectDB();
 
 // ============ Routes ============
-app.use('/api/health', (req, res) => {
+app.get('/', (req, res) => {
+  res.json({
+    success: true,
+    message: 'Techni Worker Backend is running',
+    routes: {
+      health: ['/health', '/api/health'],
+      workers: ['/workers', '/api/workers']
+    }
+  });
+});
+
+app.get(['/health', '/api/health'], (req, res) => {
   res.json({ 
     status: 'Server is running',
     environment: process.env.NODE_ENV || 'development',
@@ -35,6 +46,7 @@ app.use('/api/health', (req, res) => {
 });
 
 app.use('/api/workers', workerRoutes);
+app.use('/workers', workerRoutes);
 
 // ============ 404 Handler ============
 app.use((req, res) => {
